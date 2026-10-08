@@ -1,0 +1,16 @@
+# Terraform state and credentials
+*.tfstat
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+
+
+# Private SSH keys
+*.pem
+devops-key*
+
+# System/IDE files
+.DS_Store
+.vscode/
+ansible/inventory.ini
