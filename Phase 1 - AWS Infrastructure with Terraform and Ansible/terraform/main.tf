@@ -119,3 +119,40 @@ resource "aws_instance" "ec2_server" {
     Name = "devops-project-server"
   }
 }
+# --- Phase 2: Amazon ECR Repositories ---
+
+resource "aws_ecr_repository" "backend_ecr" {
+  name                 = "zeetafin-backend"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Name = "zeetafin-backend-repo"
+  }
+}
+
+resource "aws_ecr_repository" "frontend_ecr" {
+  name                 = "zeetafin-frontend"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = {
+    Name = "zeetafin-frontend-repo"
+  }
+}
+
+output "backend_ecr_url" {
+  value       = aws_ecr_repository.backend_ecr.repository_url
+  description = "URL of the ZeetaFin Backend ECR Repository"
+}
+
+output "frontend_ecr_url" {
+  value       = aws_ecr_repository.frontend_ecr.repository_url
+  description = "URL of the ZeetaFin Frontend ECR Repository"
+}

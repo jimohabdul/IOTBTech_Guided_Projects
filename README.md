@@ -1,44 +1,19 @@
-# Cloud & DevOps Infrastructure Automation Project
+# ZeetaFin Full-Stack ERP - Cloud & DevOps Portfolio
 
-This project automates the provisioning of AWS cloud infrastructure using Terraform and configures the environment with Ansible to deploy Docker Engine.
+Welcome to the **ZeetaFin Enterprise Resource Planning (ERP)** Cloud and DevOps project repository. This repository is structured into three main phases, demonstrating Infrastructure as Code, containerization, and automated CI/CD pipeline deployment.
 
-## Architecture & Specifications
+---
 
-- **Cloud Provider:** AWS (`us-east-1`)
-- **Compute Instance:** EC2 `t3.micro` (Ubuntu 22.04 LTS Jammy)
-- **Networking:** Custom VPC with Public Subnet and Security Group (Ports 22, 80, 443 enabled)
-- **Configuration Management:** Ansible
-- **Container Runtime:** Docker Engine & Docker CLI
+## Project Phases & Navigation
 
-## Deployment Steps
+*   ### [Phase 1: Provision AWS Infrastructure with Terraform & Ansible](./Phase%201%20-%20AWS%20Infrastructure%20with%20Terraform%20and%20Ansible)
+    *   Provisioned an AWS VPC, Subnet, Security Group, and EC2 instance using Terraform.
+    *   Configured the server automatically using Ansible playbooks to install and run Docker.
 
-### 1. Provision Infrastructure with Terraform
-```bash
-cd terraform
-terraform init
-terraform plan
-terraform apply
-```
+*   ### [Phase 2: Containerization and Amazon ECR Deployment](./Phase%202%20-%20Containerization%20and%20Amazon%20ECR%20Deployment)
+    *   Containerized the Next.js frontend and NestJS backend applications with Docker.
+    *   Tested, authenticated, and pushed application images to Amazon Elastic Container Registry (ECR).
 
-### 2. Configure Server & Deploy Docker with Ansible
-```bash
-cd ../ansible
-ansible-playbook -i inventory.ini playbook.yml
-```
-
-## Verification
-- Connection tested using `ansible webserver -i inventory.ini -m ping`
-- Docker Engine installation verified on remote host by running the `hello-world` test container via Ansible playbook automation.
-
-## 📸 Deployment Evidence & Screenshots
-
-### 1. Infrastructure Provisioning (Terraform)
-![Terraform Apply Part 1](images/terraform-apply1.png)
-![Terraform Apply Part 2](images/terraform-apply2.png)
-
-### 2. AWS Management Console
-![AWS Console EC2](images/aws-console.png)
-
-### 3. Ansible Automation & Docker Verification
-![Ansible Output Part 1](images/ansible-output1.png)
-![Ansible Output Part 2](images/ansible-output2.png)
+*   ### [Phase 3: CI/CD Pipeline and Automated AWS Deployment](./Phase%203%20-%20CICD%20Pipeline%20and%20Automated%20AWS%20Deployment)
+    *   Created an automated GitHub Actions workflow to build, push, and deploy updates to AWS EC2.
+    *   Managed secure credentials safely using GitHub Secrets.
