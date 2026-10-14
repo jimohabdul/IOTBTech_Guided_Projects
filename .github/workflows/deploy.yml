@@ -8,12 +8,18 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
         submodules: false
         fetch-depth: 1
+
+    - name: Disable Submodules in Git Config
+      run: git config --global submodule.recurse false
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -26,6 +32,6 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Build and Tag Docker Image
+    - name: Build Docker Image
       run: |
         docker build -t zeetafin-app .
