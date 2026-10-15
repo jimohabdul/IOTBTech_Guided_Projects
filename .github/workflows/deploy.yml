@@ -9,11 +9,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
+    - name: Checkout Repository Without Submodules
       uses: actions/checkout@v4
       with:
         submodules: false
         fetch-depth: 1
+
+    - name: Purge Submodule Metadata
+      run: |
+        rm -rf .gitmodules
+        git rm --cached "Phase 2 - Containerization and Amazon ECR Deployment/ZeetaFin-BE" || true
+        git rm --cached "Phase 2 - Containerization and Amazon ECR Deployment/ZeetaFin-FE" || true
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
