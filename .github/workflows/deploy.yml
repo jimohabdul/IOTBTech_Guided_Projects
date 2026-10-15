@@ -2,36 +2,117 @@ name: ZeetaFin CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
+    paths-ignore:
+      - "**.md"
+      - "**/docs/**"
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  PHASE2_DIR: "Phase 2 - Containerization and Amazon ECR Deployment"
 
 jobs:
-  build-and-push:
+  build-push-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository Without Submodules
-      uses: actions/checkout@v4
-      with:
-        submodules: false
-        fetch-depth: 1
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Purge Submodule Metadata
-      run: |
-        rm -rf .gitmodules
-        git rm --cached "Phase 2 - Containerization and Amazon ECR Deployment/ZeetaFin-BE" || true
-        git rm --cached "Phase 2 - Containerization and Amazon ECR Deployment/ZeetaFin-FE" || true
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Log in to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push backend image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker build -t "$REGISTRY/zeetafin-backend:${{ github.sha }}" \
+                       -t "$REGISTRY/zeetafin-backend:latest" \
+                       "./$PHASE2_DIR/ZeetaFin-BE"
+          docker push "$REGISTRY/zeetafin-backend:${{ github.sha }}"
+          docker push "$REGISTRY/zeetafin-backend:latest"
 
-    - name: Build Docker Image
-      run: |
-        docker build -t zeetafin-app -f "./Phase 2 - Containerization and Amazon ECR Deployment/ZeetaFin-BE/Dockerfile" "./Phase 2 - Containerization and Amazon ECR Deployment/ZeetaFin-BE"
+      - name: Build and push frontend image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker build -t "$REGISTRY/zeetafin-frontend:${{ github.sha }}" \
+                       -t "$REGISTRY/zeetafin-frontend:latest" \
+                       "./$PHASE2_DIR/ZeetaFin-FE"
+          docker push "$REGISTRY/zeetafin-frontend:${{ github.sha }}"
+          docker push "$REGISTRY/zeetafin-frontend:latest"
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Log the server in to ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          aws ecr get-login-password --region "$AWS_REGION" | \
+          ssh -i ~/.ssh/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
+            "docker login --username AWS --password-stdin $REGISTRY"
+
+      - name: Deploy on EC2
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
+            "REGISTRY=$REGISTRY TAG=${{ github.sha }} bash -s" <<'EOF'
+          set -euo pipefail
+
+          docker network inspect zeetafin-net >/dev/null 2>&1 || docker network create zeetafin-net
+
+          # Database: start once, keep data in a volume, never publish its port
+          if ! docker ps -a --format '{{.Names}}' | grep -qx postgres-db; then
+            docker run -d --name postgres-db --restart unless-stopped \
+              --network zeetafin-net -v zeetafin-pgdata:/var/lib/postgresql/data \
+              --env-file ~/zeetafin/.env postgres:15-alpine
+          else
+            docker start postgres-db >/dev/null 2>&1 || true
+          fi
+
+          docker pull "$REGISTRY/zeetafin-backend:$TAG"
+          docker pull "$REGISTRY/zeetafin-frontend:$TAG"
+
+          # Replace the old application containers
+          docker rm -f backend frontend 2>/dev/null || true
+
+          docker run -d --name backend --restart unless-stopped \
+            --network zeetafin-net -p 3001:3000 \
+            --env-file ~/zeetafin/.env "$REGISTRY/zeetafin-backend:$TAG"
+
+          docker run -d --name frontend --restart unless-stopped \
+            -p 3000:3000 "$REGISTRY/zeetafin-frontend:$TAG"
+
+          # Health check
+          for i in $(seq 1 15); do
+            be=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/api/budgeting/budgets || true)
+            fe=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000 || true)
+            echo "attempt $i: backend=$be frontend=$fe"
+            if [ "$be" != "000" ] && [ "$fe" = "200" ]; then exit 0; fi
+            sleep 4
+          done
+          docker logs backend --tail 30 || true
+          exit 1
+          EOF
+
+      - name: Clean up server images
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
+            "docker image prune -f"
