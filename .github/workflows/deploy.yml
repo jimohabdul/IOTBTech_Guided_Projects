@@ -42,12 +42,12 @@ jobs:
                        "./$PHASE2_DIR/ZeetaFin-BE"
           docker push "$REGISTRY/zeetafin-backend:${{ github.sha }}"
           docker push "$REGISTRY/zeetafin-backend:latest"
-
-      - name: Build and push frontend image
+            - name: Build and push frontend image
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          docker build -t "$REGISTRY/zeetafin-frontend:${{ github.sha }}" \
+          docker build --build-arg API_HOST="${{ secrets.EC2_HOST }}:3001" \
+                       -t "$REGISTRY/zeetafin-frontend:${{ github.sha }}" \
                        -t "$REGISTRY/zeetafin-frontend:latest" \
                        "./$PHASE2_DIR/ZeetaFin-FE"
           docker push "$REGISTRY/zeetafin-frontend:${{ github.sha }}"
