@@ -1,0 +1,13 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/ap/page": "app/ap/page.js",
+  "/ar/page": "app/ar/page.js",
+  "/budgeting/page": "app/budgeting/page.js",
+  "/cash/page": "app/cash/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/gl/page": "app/gl/page.js",
+  "/fixed-assets/page": "app/fixed-assets/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/users/page": "app/users/page.js"
+}
