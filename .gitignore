@@ -5,3 +5,5 @@
 terraform.tfvars
 ansible/inventory.ini
 *.pem
+node_modules/
+node_modules/
