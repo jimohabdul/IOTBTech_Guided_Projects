@@ -42,7 +42,8 @@ jobs:
                        "./$PHASE2_DIR/ZeetaFin-BE"
           docker push "$REGISTRY/zeetafin-backend:${{ github.sha }}"
           docker push "$REGISTRY/zeetafin-backend:latest"
-            - name: Build and push frontend image
+
+      - name: Build and push frontend image
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
@@ -98,7 +99,8 @@ jobs:
             --env-file ~/zeetafin/.env "$REGISTRY/zeetafin-backend:$TAG"
 
           docker run -d --name frontend --restart unless-stopped \
-            -p 3000:3000 "$REGISTRY/zeetafin-frontend:$TAG"
+            --network zeetafin-net -p 3000:3000 \
+            "$REGISTRY/zeetafin-frontend:$TAG"
 
           # Health check
           for i in $(seq 1 15); do
