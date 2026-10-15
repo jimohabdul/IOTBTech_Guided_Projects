@@ -8,3 +8,5 @@ ansible/inventory.ini
 node_modules/
 node_modules/
 **/ansible/inventory.ini
+.env*
+!.env.example
