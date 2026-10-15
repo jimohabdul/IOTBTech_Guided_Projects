@@ -33,6 +33,5 @@ jobs:
       uses: aws-actions/amazon-ecr-login@v2
 
     - name: Build Docker Image
-      working-directory: "Phase 2 - Containerization and Amazon ECR Deployment/ZeetaFin-BE"
       run: |
-        docker build -t zeetafin-app .
+        docker build -t zeetafin-app -f "./Phase 2 - Containerization and Amazon ECR Deployment/ZeetaFin-BE/Dockerfile" "./Phase 2 - Containerization and Amazon ECR Deployment/ZeetaFin-BE"
